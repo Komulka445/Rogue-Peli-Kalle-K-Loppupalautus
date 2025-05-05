@@ -13,8 +13,10 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\..\..\..\Downloads\TurboMapReader-main\TurboMapReader-main\TurboMapReader.csproj" />
+    <ProjectReference Include="..\..\TurboMapReader\TurboMapReader.csproj" />
   </ItemGroup>
+
+
 
   <ItemGroup>
     <None Update="Audio\Kavely.wav">
