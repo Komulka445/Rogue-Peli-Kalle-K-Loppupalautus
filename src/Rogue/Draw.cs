@@ -6,7 +6,5 @@ using System.Threading.Tasks;
 
 namespace Rogue
 {
-    internal class Draw
-    {
-    }
+
 }

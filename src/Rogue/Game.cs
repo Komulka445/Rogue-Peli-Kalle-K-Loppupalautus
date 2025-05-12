@@ -1,22 +1,19 @@
-﻿using Newtonsoft.Json.Linq;
-using System;
-using System.Collections.Generic;
-using System.ComponentModel.Design;
-using System.Diagnostics;
-using System.Drawing;
-using System.Linq;
+﻿using RayGuiCreator;
 using System.Numerics;
-using System.Text;
-using System.Threading.Tasks;
-using System.Xml.Linq;
-using System.Xml.Schema;
 using ZeroElectric.Vinculum;
-using static System.Net.Mime.MediaTypeNames;
 using Rectangle = ZeroElectric.Vinculum.Rectangle;
-using TurboMapReader; //turbomapreader tiled mappi juttu
 
 namespace Rogue
 {
+    enum GameState
+    {
+        MainMenu,
+        GameLoop,
+        CharacterCreation,
+        OptionsMenu,
+        PauseMenu
+    }
+
     class MapLayer
     {
         public string name;
@@ -29,6 +26,7 @@ namespace Rogue
         Texture temp;
         Texture seina;
         Texture lattia;
+        Texture pipsa;
         Rectangle sPlayerRect;
         Rectangle dPlayerRect;
         Rectangle sWallRect;
@@ -37,8 +35,9 @@ namespace Rogue
         Rectangle dFloorRect;
         public Font haloFontti;
         MapLoader loader = new MapLoader();
-        int PosX = 1;
-        int PosY = 1;
+        int imagesPerRow = 12;
+        int PosX = 3;
+        int PosY = 3;
         int FormerX = 1;
         int FormerY = 1;
         int ScreensizeX;
@@ -52,14 +51,32 @@ namespace Rogue
         MapLoader mapLoader;
         int pixelX;
         int pixelY;
+        bool game_running;
+        Stack<GameState> currentGameState = new Stack<GameState>();
+        CharacterMenu characterMenu;
+        OptionsMenu myOptionsMenu;
+        PauseMenu myPauseMenu;
+
+        void OnOptionsBackButtonPressed(object sender, EventArgs args)
+        {
+            currentGameState.Pop();
+        }
+        void OnPauseBackButtonPressed(object sender, EventArgs args)
+        {
+            currentGameState.Pop();
+        }
+        void OptionsButtonPressedEvent(object sender, EventArgs args)
+        {
+            currentGameState.Push(GameState.OptionsMenu);
+        }
 
         public void ScreenSettings()
         {
-            Console.WriteLine("Select Resolution:\nnumpad1 -       480 x 270 (Native)\nnumpad2 - qHD   960 x 540 (Recommended)\nnnumpad3 - FHD 1920 x 1080 (Fullscreen!)\n\nEsitetyt vaatimukset tehtävän hyväksymistä varten:\n\nPelaajan liikkuminen ja törmääminen seiniin. DONE\nPelaajan liikkumisesta tulee ääntä. DONE\nPelaajan piirtäminen käyttämällä kuvia. DONE\nVihollisen olemassaolo. DONE\nVihollisen piirtäminen. DONE\nPelaaja törmää vihollisiin. DONE\nKentän piirtäminen käyttäen kuvia. DONE\nKentän lataaminen ja tallentaminen tiedostosta. DONE\nKenttien tekeminen kenttäeditorilla. DONE\n\nKaikki vaatimukset ovat täytetty noudatten niitä.\nPelissä liikutaan numpad  1 - 4, 6 - 9:llä.\nLadattuasi peliin paina numpad 2, 3 tai 6, jotta kenttä ilmestyy.\nPeli sisältää myös uniikin fontin.");
-            
+            Console.WriteLine("Select Resolution:\nnumpad1 -       480 x 270 ((THIS))\nnumpad2 - qHD   960 x 540\nnnumpad3 - FHD 1920 x 1080 (Fullscreen!)\n\nEsitetyt vaatimukset tehtävän hyväksymistä varten:\n\nPelaajan liikkuminen ja törmääminen seiniin. DONE\nPelaajan liikkumisesta tulee ääntä. DONE\nPelaajan piirtäminen käyttämällä kuvia. DONE\nVihollisen olemassaolo. DONE\nVihollisen piirtäminen. DONE\nPelaaja törmää vihollisiin. DONE\nKentän piirtäminen käyttäen kuvia. DONE\nKentän lataaminen ja tallentaminen tiedostosta. DONE\nKenttien tekeminen kenttäeditorilla. DONE\n\nKaikki vaatimukset ovat täytetty noudatten niitä.\nPelissä liikutaan numpad  1 - 4, 6 - 9:llä.\nLadattuasi peliin paina numpad 2, 3 tai 6, jotta kenttä ilmestyy.\nPeli sisältää myös uniikin fontin.");
+
             while (true)
             {
-                swf:
+            swf:
                 ConsoleKeyInfo key = Console.ReadKey(true);
                 switch (key.Key)
                 {
@@ -87,7 +104,7 @@ namespace Rogue
                 }
                 break;
             }
-            
+
         }
         public void CharacterCreation()
         {
@@ -132,7 +149,7 @@ namespace Rogue
         }
         public void CheckTile()
         {
-            if (mapproxy.GetLayer("ground").mapTiles[PosX + PosY * mapproxy.mapWidth] == 1 && mapproxy.GetLayer("enemies").mapTiles[PosX + PosY * mapproxy.mapWidth] == 0)
+            if (mapproxy.GetLayer("ground").mapTiles[PosX + PosY * mapproxy.mapWidth] == 49)
             {
 
                 Console.SetCursorPosition(PosX, PosY);
@@ -152,16 +169,18 @@ namespace Rogue
             Console.Clear();
             level01 = loader.LoadMapFromFile("Maps/mapfile.json");  //loader.LoadTestMap();
             level02 = loader.LoadMapFromFile("Maps/mapfile_layers.json");
-            level03 = TurboMapReader.MapReader.LoadMapFromFile("Maps/roguemappi.json"); //turbomapreader tiled mappi juttu
-            //TileMap loadedTileMap = TurboMapReader.MapReader.LoadMapFromFile("Maps/roguemappi.json");
-            mapproxy = level02;
+            level03 = TurboMapReader.MapReader.LoadMapFromFile("Maps/tiledmap.tmj"); //turbomapreader tiled mappi juttu
+            //TiledMap loadedTileMap = TurboMapReader.MapReader.LoadMapFromFile("Maps/roguemappi.json");
+            mapproxy = MapLoader.ConvertTiledMapToMap(level03);
             int indeksi = PosX + (PosY * 8 * resoPlier);
             Raylib.InitWindow(ScreensizeX, ScreensizeY, "test");
             Raylib.InitAudioDevice();
             kavely = Raylib.LoadSound("Audio/Kavely.wav");
-            Texture pipsa = Raylib.LoadTexture("Textures/pipsa.png");
-            seina = Raylib.LoadTexture("Textures/Seina.png");
-            lattia = Raylib.LoadTexture("Textures/lattia.png");
+            pipsa = Raylib.LoadTexture("Textures/pipsa.png");
+            //seina = Raylib.LoadTexture("Textures/Seina.png");
+            //lattia = Raylib.LoadTexture("Textures/lattia.png");
+
+            lattia = Raylib.LoadTexture("Textures/tilemap_packed.png");
 
             haloFontti = Raylib.LoadFont("Fonts/HALO____.TTF");
             // Define the source rectangle (entire texture)
@@ -178,78 +197,119 @@ namespace Rogue
             sFloorRect = new Rectangle(0, 0, lattia.width, lattia.height);
             dFloorRect = new Rectangle(0, 0, 16 * resoPlier, 16 * resoPlier);
 
+            currentGameState.Push(GameState.MainMenu);
+            characterMenu = new CharacterMenu();
+
+            myOptionsMenu = new OptionsMenu();
+            myPauseMenu = new PauseMenu();
+
+            myOptionsMenu.BackButtonPressedEvent += this.OnOptionsBackButtonPressed;
+            myPauseMenu.BackButtonPressedEvent += this.OnPauseBackButtonPressed;
+            myPauseMenu.OptionsButtonPressedEvent += this.OptionsButtonPressedEvent;
+
+
             Raylib.SetTargetFPS(30);
-            bool game_running = true;
+            game_running = true;
             while (game_running)
             {
-                pixelX = (int)(PosX * Game.tileSize * resoPlier);
-                pixelY = (int)(PosY * Game.tileSize * resoPlier);
-                float baseSize = 16;
-                int baseFixedSize = (int)Math.Round(baseSize, 0);
-                Console.Clear();
-                Raylib.ClearBackground(Raylib.BLACK);
-                //Raylib.DrawTexturePro(pipsa, sourceRect, destRect, new Vector2(0, 0), 0, Raylib.WHITE);
-                Raylib.DrawRectangle(pixelX, pixelY, 16 * resoPlier, 16 * resoPlier, Raylib.YELLOW);
-                Raylib.DrawText("@", pixelX, pixelY, 16 * resoPlier, Raylib.BLACK);
-                Raylib.DrawTexturePro(pipsa, sPlayerRect, dPlayerRect, new Vector2(-pixelX, -pixelY), 0, Raylib.WHITE);
-                Draw();
-                Console.SetCursorPosition(PosX, PosY);
-                Console.Write("@");
-                FormerX = PosX;
-                FormerY = PosY;
-                ConsoleKeyInfo key = Console.ReadKey(true);
-                switch (key.Key)
+                switch (currentGameState.Peek())
                 {
-                    case ConsoleKey.NumPad9:
-                        PosX = PosX + 1;
-                        PosY = PosY - 1;
-                        CheckTile();
-                        //player.Move(1, -1);
+                    case GameState.MainMenu:
+                        // Tämä koodi on uutta
+                        DrawMainMenu();
                         break;
-                    case ConsoleKey.NumPad8:
-                        PosY = PosY - 1;
-                        CheckTile();
-                        //player.Move(0, -1);
+
+                    case GameState.GameLoop:
+                        // Tämä koodi on se mitä GameLoop() funktiossa oli ennen muutoksia
+                        GameLoop();
                         break;
-                    case ConsoleKey.NumPad7:
-                        PosX = PosX - 1;
-                        PosY = PosY - 1;
-                        CheckTile();
-                        //player.Move(-1, -1);
+
+                    case GameState.CharacterCreation:
+                        characterMenu.DrawMenu();
                         break;
-                    case ConsoleKey.NumPad6:
-                        PosX = PosX + 1;
-                        CheckTile();
-                        //player.Move(1, 0);
+
+                    case GameState.OptionsMenu:
+                        myOptionsMenu.DrawMenu();
                         break;
-                    case ConsoleKey.NumPad4:
-                        PosX = PosX - 1;
-                        CheckTile();
-                        //player.Move(-1, 0);
+                    case GameState.PauseMenu:
+                        myPauseMenu.DrawMenu();
                         break;
-                    case ConsoleKey.NumPad3:
-                        PosX = PosX + 1;
-                        PosY = PosY + 1;
-                        CheckTile();
-                        //player.Move(1, 1);
-                        break;
-                    case ConsoleKey.NumPad2:
-                        PosY = PosY + 1;
-                        CheckTile();
-                        //player.Move(0, 1);
-                        break;
-                    case ConsoleKey.NumPad1:
-                        PosX = PosX - 1;
-                        PosY = PosY + 1;
-                        CheckTile();
-                        //player.Move(-1, 1);
-                        break;
-                    case ConsoleKey.Escape:
-                        Raylib.UnloadTexture(pipsa);
-                        Raylib.UnloadSound(kavely);
-                        Raylib.CloseWindow();
-                        game_running = false;
-                        break;
+                }
+            }
+            Raylib.CloseWindow();
+        }
+        public void GameLoop()
+        {
+            pixelX = (int)(PosX * Game.tileSize * resoPlier);
+            pixelY = (int)(PosY * Game.tileSize * resoPlier);
+            float baseSize = 16;
+            int baseFixedSize = (int)Math.Round(baseSize, 0);
+            Console.Clear();
+            Raylib.ClearBackground(Raylib.BLACK);
+            //Raylib.DrawTexturePro(pipsa, sourceRect, destRect, new Vector2(0, 0), 0, Raylib.WHITE);
+            Raylib.DrawRectangle(pixelX, pixelY, 16 * resoPlier, 16 * resoPlier, Raylib.YELLOW);
+            Raylib.DrawText("@", pixelX, pixelY, 16 * resoPlier, Raylib.BLACK);
+            Raylib.DrawTexturePro(pipsa, sPlayerRect, dPlayerRect, new Vector2(-pixelX, -pixelY), 0, Raylib.WHITE);
+            Draw();
+            Console.SetCursorPosition(PosX, PosY);
+            Console.Write("@");
+            FormerX = PosX;
+            FormerY = PosY;
+            if (Raylib.IsKeyPressed(KeyboardKey.KEY_KP_9))
+            {
+                PosX = PosX + 1;
+                PosY = PosY - 1;
+                CheckTile();
+            }
+            if (Raylib.IsKeyPressed(KeyboardKey.KEY_KP_8))
+            {
+                PosY = PosY - 1;
+                CheckTile();
+            }
+            if (Raylib.IsKeyPressed(KeyboardKey.KEY_KP_7))
+            {
+                PosX = PosX - 1;
+                PosY = PosY - 1;
+                CheckTile();
+            }
+            if (Raylib.IsKeyPressed(KeyboardKey.KEY_KP_6))
+            {
+                PosX = PosX + 1;
+                CheckTile();
+            }
+            if (Raylib.IsKeyPressed(KeyboardKey.KEY_KP_4))
+            {
+                PosX = PosX - 1;
+                CheckTile();
+            }
+            if (Raylib.IsKeyPressed(KeyboardKey.KEY_KP_3))
+            {
+                PosX = PosX + 1;
+                PosY = PosY + 1;
+                CheckTile();
+            }
+            if (Raylib.IsKeyPressed(KeyboardKey.KEY_KP_2))
+            {
+                PosY = PosY + 1;
+                CheckTile();
+            }
+            if (Raylib.IsKeyPressed(KeyboardKey.KEY_KP_1))
+            {
+                PosX = PosX - 1;
+                PosY = PosY + 1;
+                CheckTile();
+            }
+            if (Raylib.IsKeyPressed(KeyboardKey.KEY_ESCAPE))
+            {
+                Raylib.UnloadTexture(pipsa);
+                Raylib.UnloadSound(kavely);
+                currentGameState.Pop();
+            }
+            if (Raylib.IsKeyPressed(KeyboardKey.KEY_P))
+            {
+                currentGameState.Push(GameState.PauseMenu);
+            }
+            /*
                     case ConsoleKey.Enter:
                         Console.Clear();
                         //draw.GenerateMap();
@@ -260,19 +320,58 @@ namespace Rogue
                         //draw.DrawMap();
                         break;
                     default:
-                        break;
-                }
-            }
+                        break;*/
+
         }
+
+
+        public void DrawMainMenu()
+        {
+
+            Raylib.BeginDrawing();
+            Raylib.ClearBackground(Raylib.BLACK);
+
+            int menuStartX = 10;
+            int menuStartY = 0;
+            int rowHeight = Raylib.GetScreenHeight() / 20;
+            int menuWidth = Raylib.GetScreenWidth() / 4;
+
+            // HUOM MenuCreator luodaan aina uudestaan ennen kuin valikko piirrettään.
+            MenuCreator creator = new MenuCreator(menuStartX, menuStartY, rowHeight, menuWidth);
+
+            creator.Label("Main Menu");
+
+            if (creator.Button("Character Creator"))
+            {
+                currentGameState.Push(GameState.CharacterCreation);
+            }
+            if (creator.Button("Start Game"))
+            {
+                currentGameState.Push(GameState.GameLoop);
+            }
+            if (creator.Button("Options"))
+            {
+                currentGameState.Push(GameState.OptionsMenu);
+            }
+            if (creator.Button("Exit"))
+            {
+                game_running = false;
+                
+            }
+            // TODO: new MenuCreator
+            // TODO: use MenuCreator to draw the labels and button
+
+            Raylib.EndDrawing();
+        }
+
         public void Draw()
         {
             /*TiledMap loadedTileMap = TurboMapReader.MapReader.LoadMapFromFile("Maps/roguekartta.json");
             TurboMapReader.MapReader.(loadedTileMap)
             TurboMapReader.MapReader.LoadMapFromFile("Maps/roguekartta.json");*/
 
-            temp = Raylib.LoadTexture("Textures/pipsa.png");
             Raylib.BeginDrawing();
-            Console.ForegroundColor = ConsoleColor.Gray; 
+            Console.ForegroundColor = ConsoleColor.Gray;
             Raylib.EndDrawing();
             MapLayer groundLayer = mapproxy.GetLayer("ground");
             MapLayer enemyLayer = mapproxy.GetLayer("enemies");//
@@ -280,16 +379,25 @@ namespace Rogue
             int[] enemyTiles = enemyLayer.mapTiles;//
             int mapHeight = mapTiles.Length / mapproxy.mapWidth;
             int mapHeight2 = enemyTiles.Length / mapproxy.mapWidth;//
-            for (int y = 0; y < mapHeight; y++) 
+            for (int y = 0; y < mapHeight; y++)
             {
-                for (int x = 0; x < mapproxy.mapWidth; x++) 
+                for (int x = 0; x < mapproxy.mapWidth; x++)
                 {
                     int pixelXw = (int)(x * Game.tileSize * resoPlier);
                     int pixelYw = (int)(y * Game.tileSize * resoPlier);
-                    int index = x + y * mapproxy.mapWidth; 
-                    int tileId = mapTiles[index];
+                    int index = x + y * mapproxy.mapWidth;
+                    int tileId = mapTiles[index] - 1;
                     Console.SetCursorPosition(x, y);
-                    switch (tileId)
+
+                    int imageX = tileId % imagesPerRow;
+                    int imageY = (int)(tileId / imagesPerRow);
+                    int imagePixelX = imageX * Game.tileSize;
+                    int imagePixelY = imageY * Game.tileSize;
+                    Vector2 pixelPosition = new Vector2(pixelXw, pixelYw);
+                    Rectangle imageRect = new Rectangle(imagePixelX, imagePixelY, Game.tileSize, Game.tileSize);
+                    Raylib.DrawTextureRec(lattia, imageRect, pixelPosition, Raylib.WHITE);
+
+                    /*switch (tileId)
                     {
                         case 1:
                             Console.Write(".");
@@ -306,12 +414,12 @@ namespace Rogue
                         default:
                             Console.Write(" ");
                             break;
-                    }
+                    }*/
                 }
             }
             for (int y = 0; y < mapHeight2; y++)
             {
-                for (int x = 0; x < mapproxy.mapWidth; x++) 
+                for (int x = 0; x < mapproxy.mapWidth; x++)
                 {
                     // Laske paikka valmiiksi
                     Vector2 position = new Vector2(x, y);
@@ -320,23 +428,21 @@ namespace Rogue
                     int pixelYw2 = (int)(y * Game.tileSize * resoPlier);
                     int index2 = x + y * mapproxy.mapWidth;
                     int tileId2 = enemyTiles[index2];
-                    Console.SetCursorPosition(x, y);
-                    switch (tileId2)
+
+                    if (tileId2 == 0)
                     {
-                        case 1:
-                            // Tässä kohdassa kenttää ei ole vihollista
-                            Raylib.DrawTextEx(haloFontti, "\n\nTama on kustom fontti.\n\n\n\n\nThis is a custom font.", new Vector2(pixelXw2, pixelYw2), 16 * resoPlier, 2, Raylib.PINK);
-                            break;
-                        case 2:
-                            // Tässä kohdassa kenttää on örkki
-                            // tileId on sama kuin drawIndex
-                            Console.Write("Y");
-                            Raylib.DrawRectangle(pixelXw2, pixelYw2, 16 * resoPlier, 16 * resoPlier, Raylib.RED);
-                            Raylib.DrawTextEx(haloFontti ,"Y", new Vector2(pixelXw2, pixelYw2), 16 * resoPlier, 0, Raylib.BLACK);
-                            break;
-                        default:
-                            break;
+                        continue;
                     }
+                    tileId2 -= 1;
+                    Console.SetCursorPosition(x, y);
+
+                    int imageX = tileId2 % imagesPerRow;
+                    int imageY = (int)(tileId2 / imagesPerRow);
+                    int imagePixelX = imageX * Game.tileSize;
+                    int imagePixelY = imageY * Game.tileSize;
+                    Vector2 pixelPosition = new Vector2(pixelXw2, pixelYw2);
+                    Rectangle imageRect = new Rectangle(imagePixelX, imagePixelY, Game.tileSize, Game.tileSize);
+                    Raylib.DrawTextureRec(lattia, imageRect, pixelPosition, Raylib.WHITE);
                 }
             }
         }

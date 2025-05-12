@@ -1,3 +1,0 @@
-C:\Users\root\source\repos\NetRogue\src\Rogue\bin\Release\net6.0\publish\win-x64\Rogue.pdb
-C:\Users\root\source\repos\NetRogue\src\Rogue\bin\Release\net6.0\publish\win-x64\Maps\mapfile.json
-C:\Users\root\source\repos\NetRogue\src\Rogue\bin\Release\net6.0\publish\win-x64\Rogue.exe

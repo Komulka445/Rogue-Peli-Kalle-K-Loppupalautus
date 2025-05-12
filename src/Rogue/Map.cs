@@ -9,16 +9,10 @@ namespace Rogue
 {
     internal class Map
     {
-        new MapLoader maploader;
-        new Game gameDrawer;
         public int mapWidth;
         public MapLayer[] layers;
         public List<Enemy> enemies;
         List<Item> items;
-
-
-
-
         public MapLayer GetLayer(string layerName)
         {
             for (int i = 0; i < layers.Length; i++)
